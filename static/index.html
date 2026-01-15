@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube 번역 에이전트</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .input-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 16px 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #667eea;
+        }
+
+        input[type="text"]::placeholder {
+            color: #666;
+        }
+
+        button {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-section {
+            display: none;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .status-section.active {
+            display: block;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-text {
+            font-size: 1.1em;
+            color: #aaa;
+        }
+
+        .status-text.completed {
+            color: #4ade80;
+        }
+
+        .status-text.failed {
+            color: #f87171;
+        }
+
+        .progress-steps {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .step {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .step.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .result-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            border-color: #667eea;
+        }
+
+        .result-card h3 {
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .result-card .tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .result-card .tag {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+
+        .result-card .meta {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .archive-section h2 {
+            font-size: 1.5em;
+            margin-bottom: 24px;
+            color: #fff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .view-btn {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .view-btn:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .error-msg {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            padding: 16px;
+            border-radius: 8px;
+            color: #f87171;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YouTube 번역 에이전트</h1>
+            <p>YouTube 영상을 자동으로 번역하고 요약합니다</p>
+        </header>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="YouTube URL을 입력하세요 (예: https://www.youtube.com/watch?v=...)">
+                <button id="translateBtn" onclick="startTranslation()">번역 시작</button>
+            </div>
+        </div>
+
+        <div class="status-section" id="statusSection">
+            <div class="status-header">
+                <div class="spinner" id="spinner"></div>
+                <span class="status-text" id="statusText">처리 중...</span>
+            </div>
+            <div class="progress-steps">
+                <div class="step" id="step1"></div>
+                <div class="step" id="step2"></div>
+                <div class="step" id="step3"></div>
+                <div class="step" id="step4"></div>
+            </div>
+            <div id="resultArea"></div>
+        </div>
+
+        <div class="archive-section">
+            <h2>아카이브</h2>
+            <div id="archiveList">
+                <div class="empty-state">아직 저장된 번역이 없습니다</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let pollInterval = null;
+
+        async function startTranslation() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                alert('YouTube URL을 입력해주세요.');
+                return;
+            }
+
+            document.getElementById('translateBtn').disabled = true;
+            document.getElementById('statusSection').classList.add('active');
+            document.getElementById('statusText').textContent = '작업 시작 중...';
+            document.getElementById('statusText').className = 'status-text';
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('resultArea').innerHTML = '';
+
+            // Reset steps
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('step' + i).classList.remove('active');
+            }
+
+            try {
+                const response = await fetch('/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await response.json();
+                currentJobId = data.job_id;
+                pollStatus();
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        async function pollStatus() {
+            if (!currentJobId) return;
+
+            try {
+                const response = await fetch(`/api/status/${currentJobId}`);
+                const data = await response.json();
+
+                updateProgress(data.step);
+
+                if (data.status === 'completed') {
+                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('statusText').textContent = '완료!';
+                    document.getElementById('statusText').classList.add('completed');
+                    document.getElementById('translateBtn').disabled = false;
+
+                    // All steps active
+                    for (let i = 1; i <= 4; i++) {
+                        document.getElementById('step' + i).classList.add('active');
+                    }
+
+                    // Show result
+                    const summary = data.result.summary;
+                    document.getElementById('resultArea').innerHTML = `
+                        <div style="margin-top: 24px;">
+                            <h3 style="color: #4ade80; margin-bottom: 8px;">✓ ${summary.one_liner}</h3>
+                            <p style="color: #888; margin-bottom: 16px;">태그: ${summary.tags.join(', ')}</p>
+                            <a href="/view/${data.video_id}" target="_blank" class="view-btn">결과 보기</a>
+                        </div>
+                    `;
+
+                    loadArchive();
+                    return;
+                }
+
+                if (data.status === 'failed') {
+                    showError(data.error);
+                    return;
+                }
+
+                document.getElementById('statusText').textContent = data.step || '처리 중...';
+                setTimeout(pollStatus, 1500);
+
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function updateProgress(step) {
+            const steps = {
+                '자막 추출 중...': 1,
+                '번역 중...': 2,
+                '요약 중...': 3,
+                '저장 중...': 4
+            };
+
+            const currentStep = steps[step] || 0;
+            for (let i = 1; i <= currentStep; i++) {
+                document.getElementById('step' + i).classList.add('active');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('statusText').textContent = '오류 발생';
+            document.getElementById('statusText').classList.add('failed');
+            document.getElementById('translateBtn').disabled = false;
+            document.getElementById('resultArea').innerHTML = `
+                <div class="error-msg">${message}</div>
+            `;
+        }
+
+        async function loadArchive() {
+            try {
+                const response = await fetch('/api/list');
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    document.getElementById('archiveList').innerHTML = `
+                        <div class="empty-state">아직 저장된 번역이 없습니다</div>
+                    `;
+                    return;
+                }
+
+                const html = data.map(item => `
+                    <div class="result-card" onclick="window.open('/view/${item.video_id}', '_blank')">
+                        <h3>${item.one_liner || '제목 없음'}</h3>
+                        <div class="tags">
+                            ${(item.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                        <div class="meta">${new Date(item.processed_at).toLocaleString('ko-KR')}</div>
+                    </div>
+                `).join('');
+
+                document.getElementById('archiveList').innerHTML = html;
+            } catch (error) {
+                console.error('Archive load error:', error);
+            }
+        }
+
+        // Load archive on page load
+        loadArchive();
+
+        // Enter key support
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startTranslation();
+            }
+        });
+    </script>
+</body>
+</html>
