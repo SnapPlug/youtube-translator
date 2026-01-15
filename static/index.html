@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube 번역 에이전트</title>
+    <title>나만의 인사이트 AI 큐레이터, Alex</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -240,8 +240,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>YouTube 번역 에이전트</h1>
-            <p>YouTube 영상을 자동으로 번역하고 요약합니다</p>
+            <h1>나만의 인사이트 AI 큐레이터, Alex</h1>
+            <p>해외 영상 속 인사이트, 클릭 한번에 자동으로 정리</p>
         </header>
 
         <div class="input-section">
@@ -395,7 +395,7 @@
 
                 const html = data.map(item => `
                     <div class="result-card" onclick="window.open('/view/${item.video_id}', '_blank')">
-                        <h3>${item.one_liner || '제목 없음'}</h3>
+                        <h3>${item.channel_name ? `[${item.channel_name}] ` : ''}${item.one_liner || '제목 없음'}</h3>
                         <div class="tags">
                             ${(item.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
                         </div>

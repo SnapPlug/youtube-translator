@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from youtube_transcript_api import YouTubeTranscriptApi
+from pytubefix import YouTube
 import anthropic
 
 load_dotenv()
@@ -51,6 +52,15 @@ def extract_video_id(url: str) -> str:
         if match:
             return match.group(1)
     raise ValueError(f"유효한 YouTube URL이 아닙니다: {url}")
+
+
+def get_channel_name(video_id: str) -> str:
+    """YouTube 영상에서 채널명 가져오기"""
+    try:
+        yt = YouTube(f"https://www.youtube.com/watch?v={video_id}")
+        return yt.author or "Unknown"
+    except Exception:
+        return "Unknown"
 
 
 def extract_transcript(video_id: str) -> str:
@@ -361,7 +371,11 @@ def process_video(job_id: str, url: str):
         jobs[job_id]["video_id"] = video_id
         jobs[job_id]["step"] = "자막 추출 중..."
 
-        # 2. 자막 추출
+        # 2. 채널명 가져오기
+        channel_name = get_channel_name(video_id)
+        jobs[job_id]["channel_name"] = channel_name
+
+        # 3. 자막 추출
         original = extract_transcript(video_id)
         jobs[job_id]["step"] = "번역 중..."
 
@@ -379,6 +393,7 @@ def process_video(job_id: str, url: str):
         result = {
             "video_id": video_id,
             "video_url": f"https://www.youtube.com/watch?v={video_id}",
+            "channel_name": channel_name,
             "original_transcript": original,
             "korean_transcript": korean,
             "summary": summary,
@@ -463,6 +478,7 @@ async def list_results():
             data = json.load(f)
             results.append({
                 "video_id": data.get("video_id"),
+                "channel_name": data.get("channel_name", ""),
                 "one_liner": data.get("summary", {}).get("one_liner", ""),
                 "tags": data.get("summary", {}).get("tags", []),
                 "processed_at": data.get("processed_at")
